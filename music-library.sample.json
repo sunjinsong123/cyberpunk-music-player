@@ -1,0 +1,14 @@
+{
+  "songs": [
+    {
+      "name": "晴天",
+      "artist": "周杰伦",
+      "album": "叶惠美",
+      "url": "./media/qingtian-full.mp3",
+      "cover": "./media/qingtian-cover.jpg",
+      "lyricsUrl": "./media/qingtian.lrc",
+      "duration": 269,
+      "sourceLabel": "Repo Full"
+    }
+  ]
+}
