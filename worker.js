@@ -1,134 +1,147 @@
-// Cloudflare Worker - Music API CORS Proxy
-// 部署到 Cloudflare Workers（免费）
+// Cloudflare Worker - optional preview proxy
+// 默认前端可直连使用；如需统一出口或规避客户端跨域限制，可部署此 Worker。
 
 const ALLOWED_ORIGINS = [
-  'https://sunjinsong123.github.io',
   'http://localhost:8080',
   'http://127.0.0.1:8080',
 ];
 
+const ITUNES_SEARCH_ENDPOINT = 'https://itunes.apple.com/search';
+const ITUNES_LOOKUP_ENDPOINT = 'https://itunes.apple.com/lookup';
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const origin = request.headers.get('Origin') || '';
 
-    // CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        },
+        headers: corsHeaders(request.headers.get('Origin')),
       });
     }
 
-    // Search endpoint
     if (url.pathname === '/api/search') {
-      const keyword = url.searchParams.get('q') || '';
-      const limit = url.searchParams.get('limit') || '30';
-
-      try {
-        const resp = await fetch('https://music.163.com/api/search/get/web', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': 'https://music.163.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-          body: `s=${encodeURIComponent(keyword)}&type=1&limit=${limit}&offset=0`,
-        });
-
-        const data = await resp.json();
-
-        const songs = (data?.result?.songs || []).map(s => ({
-          id: s.id,
-          name: s.name,
-          artist: (s.artists || []).map(a => a.name).join('/'),
-          album: s.album?.name || '',
-          cover: s.album?.artist?.img1v1Url || s.album?.picUrl || '',
-          duration: Math.floor((s.duration || 0) / 1000),
-        }));
-
-        return jsonResponse({ songs });
-      } catch (err) {
-        return jsonResponse({ error: err.message, songs: [] }, 500);
-      }
+      return handleSearch(request);
     }
 
-    // Song URL endpoint
     if (url.pathname === '/api/url') {
-      const id = url.searchParams.get('id');
-      try {
-        const resp = await fetch(`https://music.163.com/api/song/enhance/player/url?id=${id}&ids=[${id}]&br=320000`, {
-          headers: {
-            'Referer': 'https://music.163.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-        });
-        const data = await resp.json();
-        const songUrl = data?.data?.[0]?.url || '';
-        return jsonResponse({ url: songUrl });
-      } catch (err) {
-        return jsonResponse({ error: err.message, url: '' }, 500);
-      }
+      return handleUrlLookup(request);
     }
 
-    // Song detail endpoint
-    if (url.pathname === '/api/detail') {
-      const id = url.searchParams.get('id');
-      try {
-        const resp = await fetch(`https://music.163.com/api/song/detail?id=${id}&ids=[${id}]`, {
-          headers: {
-            'Referer': 'https://music.163.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-        });
-        const data = await resp.json();
-        const song = data?.songs?.[0];
-        if (song) {
-          return jsonResponse({
-            id: song.id,
-            name: song.name,
-            artist: (song.artists || []).map(a => a.name).join('/'),
-            album: song.album?.name || '',
-            cover: song.album?.picUrl || '',
-            duration: Math.floor((song.duration || 0) / 1000),
-          });
-        }
-        return jsonResponse({ error: 'not found' }, 404);
-      } catch (err) {
-        return jsonResponse({ error: err.message }, 500);
-      }
+    if (url.pathname === '/api/health') {
+      return jsonResponse({ ok: true, mode: 'itunes-preview-proxy' }, 200, request);
     }
 
-    // Lyric endpoint
-    if (url.pathname === '/api/lyric') {
-      const id = url.searchParams.get('id');
-      try {
-        const resp = await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1&tv=1`, {
-          headers: {
-            'Referer': 'https://music.163.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-        });
-        const data = await resp.json();
-        return jsonResponse({ lrc: data?.lrc?.lyric || '' });
-      } catch (err) {
-        return jsonResponse({ error: err.message, lrc: '' }, 500);
-      }
-    }
-
-    return jsonResponse({ error: 'Not found', endpoints: ['/api/search', '/api/url', '/api/detail', '/api/lyric'] }, 404);
+    return jsonResponse(
+      { error: 'Not found', endpoints: ['/api/search', '/api/url', '/api/health'] },
+      404,
+      request,
+    );
   },
 };
 
-function jsonResponse(data, status = 200) {
+async function handleSearch(request) {
+  const incoming = new URL(request.url);
+  const q = incoming.searchParams.get('q') || '';
+  const limit = incoming.searchParams.get('limit') || '30';
+  const country = incoming.searchParams.get('country') || 'CN';
+
+  if (!q.trim()) {
+    return jsonResponse({ songs: [] }, 200, request);
+  }
+
+  const upstream = new URL(ITUNES_SEARCH_ENDPOINT);
+  upstream.searchParams.set('term', q);
+  upstream.searchParams.set('media', 'music');
+  upstream.searchParams.set('entity', 'song');
+  upstream.searchParams.set('limit', limit);
+  upstream.searchParams.set('country', country);
+  upstream.searchParams.set('lang', 'zh_cn');
+
+  try {
+    const resp = await fetch(upstream.toString(), {
+      headers: {
+        'User-Agent': 'NEON-BEAT-Worker',
+      },
+    });
+
+    if (!resp.ok) {
+      return jsonResponse({ songs: [], error: `upstream ${resp.status}` }, 502, request);
+    }
+
+    const data = await resp.json();
+    const songs = (data.results || [])
+      .filter((track) => track?.trackId && track?.previewUrl)
+      .map((track) => ({
+        id: `itunes:${track.trackId}`,
+        rawId: String(track.trackId),
+        name: track.trackName || 'Unknown',
+        artist: track.artistName || 'Unknown',
+        album: track.collectionName || '',
+        cover: normalizeArtwork(track.artworkUrl100 || track.artworkUrl60 || ''),
+        duration: Math.round((track.trackTimeMillis || 0) / 1000),
+        url: track.previewUrl,
+        source: 'itunes',
+        sourceLabel: 'iTunes',
+        previewOnly: true,
+      }));
+
+    return jsonResponse({ songs }, 200, request);
+  } catch (err) {
+    return jsonResponse({ songs: [], error: err.message }, 500, request);
+  }
+}
+
+async function handleUrlLookup(request) {
+  const incoming = new URL(request.url);
+  const rawId = incoming.searchParams.get('id') || '';
+  const trackId = rawId.includes(':') ? rawId.split(':').pop() : rawId;
+
+  if (!trackId) {
+    return jsonResponse({ url: '' }, 200, request);
+  }
+
+  const upstream = new URL(ITUNES_LOOKUP_ENDPOINT);
+  upstream.searchParams.set('id', trackId);
+  upstream.searchParams.set('entity', 'song');
+  upstream.searchParams.set('country', 'CN');
+
+  try {
+    const resp = await fetch(upstream.toString(), {
+      headers: {
+        'User-Agent': 'NEON-BEAT-Worker',
+      },
+    });
+
+    if (!resp.ok) {
+      return jsonResponse({ url: '', error: `upstream ${resp.status}` }, 502, request);
+    }
+
+    const data = await resp.json();
+    const track = (data.results || []).find((item) => item?.trackId);
+    return jsonResponse({ url: track?.previewUrl || '' }, 200, request);
+  } catch (err) {
+    return jsonResponse({ url: '', error: err.message }, 500, request);
+  }
+}
+
+function normalizeArtwork(url) {
+  if (!url) return '';
+  return url.replace(/\/\d+x\d+bb\./, '/600x600bb.');
+}
+
+function corsHeaders(origin) {
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : '*';
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  };
+}
+
+function jsonResponse(data, status = 200, request) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
+    headers: corsHeaders(request.headers.get('Origin') || ''),
   });
 }
