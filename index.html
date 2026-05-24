@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON BEAT // 赛博音浪</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Scanline overlay -->
+  <div class="scanlines"></div>
+
+  <!-- Glitch background -->
+  <div class="bg-grid"></div>
+
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <h1>NEON<span class="accent">BEAT</span></h1>
+        <span class="subtitle">// 赛博音浪 v2.077</span>
+      </div>
+      <div class="header-status">
+        <span class="status-dot"></span>
+        <span class="status-text">SYSTEM ONLINE</span>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-section">
+      <div class="search-box">
+        <span class="search-icon">⟫</span>
+        <input type="text" id="searchInput" placeholder="输入关键词搜索音乐..." autocomplete="off">
+        <button id="searchBtn" class="btn-search">
+          <span>SCAN</span>
+        </button>
+      </div>
+      <div class="search-tags">
+        <span class="tag" data-query="周杰伦">周杰伦</span>
+        <span class="tag" data-query="电音">电音</span>
+        <span class="tag" data-query="摇滚">摇滚</span>
+        <span class="tag" data-query="说唱">说唱</span>
+        <span class="tag" data-query="R&B">R&B</span>
+        <span class="tag" data-query="纯音乐">纯音乐</span>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Search Results -->
+      <div class="results-section" id="resultsSection">
+        <div class="section-header">
+          <span class="section-icon">◈</span>
+          <h2>搜索结果</h2>
+          <span class="result-count" id="resultCount"></span>
+        </div>
+        <div class="results-list" id="resultsList">
+          <div class="empty-state">
+            <div class="empty-icon">⟪⟫</div>
+            <p>在上方输入关键词开始搜索</p>
+            <p class="empty-sub">支持歌名、歌手、专辑搜索</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Playlist / Now Playing -->
+      <div class="playlist-section">
+        <div class="section-header">
+          <span class="section-icon">◈</span>
+          <h2>播放列表</h2>
+          <button class="btn-clear" id="clearPlaylist">CLEAR</button>
+        </div>
+        <div class="playlist" id="playlist">
+          <div class="empty-state">
+            <div class="empty-icon">♫</div>
+            <p>播放列表为空</p>
+            <p class="empty-sub">搜索并点击歌曲添加到列表</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Player Bar -->
+    <div class="player-bar" id="playerBar">
+      <div class="player-info">
+        <div class="album-art" id="albumArt">
+          <div class="album-placeholder">♫</div>
+        </div>
+        <div class="track-info">
+          <div class="track-name" id="trackName">未播放</div>
+          <div class="track-artist" id="trackArtist">--</div>
+        </div>
+      </div>
+
+      <div class="player-controls">
+        <button class="ctrl-btn" id="prevBtn" title="上一首">⏮</button>
+        <button class="ctrl-btn play-btn" id="playBtn" title="播放/暂停">▶</button>
+        <button class="ctrl-btn" id="nextBtn" title="下一首">⏭</button>
+      </div>
+
+      <div class="player-progress">
+        <span class="time" id="currentTime">0:00</span>
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-glow" id="progressGlow"></div>
+        </div>
+        <span class="time" id="duration">0:00</span>
+      </div>
+
+      <div class="player-extra">
+        <div class="volume-control">
+          <span class="vol-icon" id="volIcon">🔊</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="80" class="vol-slider">
+        </div>
+        <button class="ctrl-btn" id="modeBtn" title="播放模式">🔁</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Visualizer Canvas -->
+  <canvas id="visualizer" class="visualizer"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
