@@ -13,6 +13,7 @@
 
   <!-- Glitch background -->
   <div class="bg-grid"></div>
+  <div class="beat-halo"></div>
 
   <div class="app">
     <!-- Header -->
@@ -37,14 +38,24 @@
           <span>SCAN</span>
         </button>
       </div>
-      <div class="search-tags">
-        <span class="tag" data-query="周杰伦">周杰伦</span>
-        <span class="tag" data-query="电音">电音</span>
-        <span class="tag" data-query="摇滚">摇滚</span>
-        <span class="tag" data-query="说唱">说唱</span>
-        <span class="tag" data-query="R&B">R&B</span>
-        <span class="tag" data-query="纯音乐">纯音乐</span>
+      <div class="search-tools">
+        <div class="search-tags">
+          <span class="tag" data-query="周杰伦">周杰伦</span>
+          <span class="tag" data-query="电音">电音</span>
+          <span class="tag" data-query="摇滚">摇滚</span>
+          <span class="tag" data-query="说唱">说唱</span>
+          <span class="tag" data-query="R&B">R&B</span>
+          <span class="tag" data-query="纯音乐">纯音乐</span>
+        </div>
+        <div class="library-tools">
+          <button class="btn-tool" id="importAudioBtn">IMPORT AUDIO</button>
+          <button class="btn-tool" id="importLyricsBtn">IMPORT LRC</button>
+          <button class="btn-tool" id="focusCurrentBtn">DETAIL</button>
+        </div>
       </div>
+      <p class="search-note">调试完整版请导入本地音频文件或配置同源 `music-library.json`；歌词支持导入同名 `.lrc` 文件。</p>
+      <input type="file" id="audioFileInput" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden>
+      <input type="file" id="lyricsFileInput" accept=".lrc,text/plain" multiple hidden>
     </div>
 
     <!-- Main Content -->
@@ -77,6 +88,21 @@
             <div class="empty-icon">♫</div>
             <p>播放列表为空</p>
             <p class="empty-sub">搜索并点击歌曲添加到列表</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section" id="detailSection">
+        <div class="section-header">
+          <span class="section-icon">◈</span>
+          <h2>歌曲详情</h2>
+          <span class="result-count" id="detailHint">点击歌曲查看详情</span>
+        </div>
+        <div class="detail-panel" id="detailPanel">
+          <div class="empty-state">
+            <div class="empty-icon">◎</div>
+            <p>尚未选择歌曲</p>
+            <p class="empty-sub">点击搜索结果、播放列表或底部当前歌曲查看歌词与详情</p>
           </div>
         </div>
       </div>
